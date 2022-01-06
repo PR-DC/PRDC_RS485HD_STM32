@@ -1,0 +1,10 @@
+--------------------
+PRDC_RS485HD_STM32
+Half-Duplex RS485 communication for Arduino_Core_STM32
+--------------------
+
+Release 1.0.0, 28.12.2021.
+
+- Initial release
+
+--------------------

@@ -1,0 +1,46 @@
+#######################################
+# Syntax Coloring Map
+#######################################
+
+#######################################
+# Datatypes (KEYWORD1)
+#######################################
+
+PRDC_RS485HD_STM32 KEYWORD1 PRDC_RS485HD_STM32
+
+#######################################
+# Methods and Functions (KEYWORD2)
+#######################################
+begin KEYWORD2
+setPins KEYWORD2
+end KEYWORD2
+available KEYWORD2
+peek KEYWORD2
+read KEYWORD2
+availableForWrite KEYWORD2
+flush KEYWORD2
+write KEYWORD2
+setRx KEYWORD2
+setTx KEYWORD2
+
+#######################################
+# Constants (LITERAL1)
+#######################################
+SERIAL_TX_BUFFER_SIZE LITERAL1
+SERIAL_RX_BUFFER_SIZE LITERAL1
+RS485_7N1 LITERAL1
+RS485_7N2 LITERAL1
+RS485_6E1 LITERAL1
+RS485_6E2 LITERAL1
+RS485_6O1 LITERAL1
+RS485_6O2 LITERAL1
+RS485_8N1 LITERAL1
+RS485_8N2 LITERAL1
+RS485_7E1 LITERAL1
+RS485_8E1 LITERAL1
+RS485_7E2 LITERAL1
+RS485_8E2 LITERAL1
+RS485_7O1 LITERAL1
+RS485_8O1 LITERAL1
+RS485_7O2 LITERAL1
+RS485_8O2 LITERAL1

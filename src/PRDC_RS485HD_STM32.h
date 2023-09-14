@@ -5,7 +5,7 @@
  * info@pr-dc.com
  * 
  * --------------------
- * Copyright (C) 2021 PR-DC <info@pr-dc.com>
+ * Copyright (C) 2023 PR-DC <info@pr-dc.com>
  *
  * This file is part of PRDC_RS485HD_STM32.
  *
@@ -88,7 +88,7 @@ typedef uint8_t rx_buffer_index_t;
 
 // A bool should be enough for this
 // But it brings an build error due to ambiguous
-// call of overloaded PRDC_RS485HD_STM32(int, int)
+// call of overloaded PRDC_RS485HD(int, int)
 // So defining a dedicated type
 
 // Define config for RS485.begin(baud, config);
@@ -143,7 +143,7 @@ class PRDC_RS485HD_STM32 : public Stream {
       begin(baud, RS485_8N1);
     }
     void begin(unsigned long, uint8_t);
-    void setPins(uint32_t DE_PIN, uint32_t RE_PIN);
+    void setPins(uint32_t DE_PIN,uint32_t RE_PIN);
     void setPins(uint32_t E_PIN);
     void end();
     virtual int available(void);
@@ -168,7 +168,7 @@ class PRDC_RS485HD_STM32 : public Stream {
     {
       return write((uint8_t)n);
     }
-    using Print::write; // pull in write(str) and write(buf, size) from Print
+    using Print::write; // pull in write(str) from Print
     operator bool()
     {
       return true;
@@ -194,4 +194,4 @@ class PRDC_RS485HD_STM32 : public Stream {
     static void transmitDisableIRQ(serial_t *obj);
     void transmitDisable();
 };
-#endif // PRDC_RS485HD_STM32_h
+#endif // PRDC_RS485HD_h

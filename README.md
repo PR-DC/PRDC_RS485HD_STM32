@@ -7,7 +7,7 @@ Library for Arduino_Core_STM32 and RS485 Half-Duplex transceivers. This library 
 [Arduino_Core_STM32](https://github.com/stm32duino/Arduino_Core_STM32)<br>
 
 This library is tested with 
-**Arduino IDE 1.8.16** and **Arduino_Core_STM32 2.1.0**.
+**Arduino IDE 1.8.16** and **Arduino_Core_STM32 2.6.0**.
 
 ## Installation
 Clone the repository to the Arduino libraries folder.

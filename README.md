@@ -24,7 +24,7 @@ For more information please visit: https://www.arduino.cc/en/guide/libraries#toc
 For usage please check provided examples. 
 
 ## License
-Copyright (C) 2021 PR-DC <info@pr-dc.com>
+Copyright (C) 2023 PR-DC <info@pr-dc.com>
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU Lesser General Public License as 

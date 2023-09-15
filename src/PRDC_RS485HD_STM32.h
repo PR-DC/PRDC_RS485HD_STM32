@@ -168,6 +168,7 @@ class PRDC_RS485HD_STM32 : public Stream {
     {
       return write((uint8_t)n);
     }
+    size_t write(const uint8_t *buffer, size_t size);
     using Print::write; // pull in write(str) from Print
     operator bool()
     {

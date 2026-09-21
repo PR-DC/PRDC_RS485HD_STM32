@@ -415,6 +415,10 @@ void PRDC_RS485HD_STM32::flush()
 
 size_t PRDC_RS485HD_STM32::write(const uint8_t *buffer, size_t size)
 {
+  if (size == 0) {
+    return 0;
+  }
+
   size_t size_intermediate;
   size_t ret = size;
   size_t available = availableForWrite();
@@ -535,13 +539,11 @@ void PRDC_RS485HD_STM32::transmitEnable() {
 // Disable data transmit
 // --------------------
 void PRDC_RS485HD_STM32::transmitDisable() {
-  if(this->state == 1) {
-    this->state = 0; 
-    if(this->pin_num) {
-      digitalWrite(this->enable_pin,LOW);
-      if(this->pin_num > 1) {
-        digitalWrite(this->enable_pin2,LOW);
-      }
+  this->state = 0;
+  if(this->pin_num) {
+    digitalWrite(this->enable_pin,LOW);
+    if(this->pin_num > 1) {
+      digitalWrite(this->enable_pin2,LOW);
     }
   }
 }

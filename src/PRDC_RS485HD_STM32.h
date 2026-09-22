@@ -151,6 +151,7 @@ class PRDC_RS485HD_STM32 : public Stream {
     virtual int read(void);
     int availableForWrite(void);
     virtual void flush(void);
+    bool isTransmitting() const;
     virtual size_t write(uint8_t);
     inline size_t write(unsigned long n)
     {
@@ -184,7 +185,7 @@ class PRDC_RS485HD_STM32 : public Stream {
     static void _rx_complete_irq(serial_t *obj);
     static int _tx_complete_irq(serial_t *obj);
   private:
-    uint32_t state;
+    volatile uint32_t state;
     uint32_t pin_num;
     uint32_t enable_pin;
     uint32_t enable_pin2;

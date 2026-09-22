@@ -397,6 +397,13 @@ int PRDC_RS485HD_STM32::availableForWrite(void)
   return tail - head - 1;
 }
 
+// isTransmitting() function
+// Check completion without waiting for the last byte
+// --------------------
+bool PRDC_RS485HD_STM32::isTransmitting() const {
+  return this->state != 0;
+}
+
 void PRDC_RS485HD_STM32::flush()
 {
   // If we have never written a byte, no need to flush. This special

@@ -185,6 +185,8 @@ class PRDC_RS485HD_STM32 : public Stream {
     static void _rx_complete_irq(serial_t *obj);
     static int _tx_complete_irq(serial_t *obj);
   private:
+    static PRDC_RS485HD_STM32* first;
+    PRDC_RS485HD_STM32* next = nullptr;
     volatile uint32_t state;
     uint32_t pin_num;
     uint32_t enable_pin;

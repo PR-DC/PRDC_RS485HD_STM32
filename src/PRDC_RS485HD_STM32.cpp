@@ -50,14 +50,12 @@
 */
 
 #include <stdio.h>
-#include <map>
 #include "Arduino.h"
 
 #include "PRDC_RS485HD_STM32.h"
 #if defined(HAL_UART_MODULE_ENABLED) && !defined(HAL_UART_MODULE_ONLY)
 
-std::map<uint8_t*, PRDC_RS485HD_STM32*> objs;
-std::map<uint8_t*, PRDC_RS485HD_STM32*>::iterator it;
+PRDC_RS485HD_STM32* PRDC_RS485HD_STM32::first = nullptr;
 
 // Constructors ////////////////////////////////////////////////////////////////
 PRDC_RS485HD_STM32::PRDC_RS485HD_STM32(uint32_t _rx, uint32_t _tx)
@@ -270,8 +268,13 @@ int PRDC_RS485HD_STM32::_tx_complete_irq(serial_t *obj)
 // Disable data transmit in IRQ
 // --------------------
 void PRDC_RS485HD_STM32::transmitDisableIRQ(serial_t *obj) {
-  it = objs.find(&obj->index);
-  PRDC_RS485HD_STM32* oRS485 = it->second;
+  PRDC_RS485HD_STM32* oRS485 = first;
+  while(oRS485 && &oRS485->_serial != obj) {
+    oRS485 = oRS485->next;
+  }
+  if(!oRS485) {
+    return;
+  }
   if(oRS485->state == 1) {
     oRS485->state = 0; 
     if(oRS485->pin_num) {
@@ -346,7 +349,14 @@ void PRDC_RS485HD_STM32::begin(unsigned long baud, byte config)
   
   uart_init(&_serial, (uint32_t)baud, databits, parity, stopbits);
   uart_attach_rx_callback(&_serial, _rx_complete_irq);
-  objs.insert(std::make_pair(&_serial.index, this));
+  PRDC_RS485HD_STM32* instance = first;
+  while(instance && instance != this) {
+    instance = instance->next;
+  }
+  if(!instance) {
+    this->next = first;
+    first = this;
+  }
 }
 
 void PRDC_RS485HD_STM32::end()
@@ -355,6 +365,14 @@ void PRDC_RS485HD_STM32::end()
   flush();
 
   uart_deinit(&_serial);
+  PRDC_RS485HD_STM32** instance = &first;
+  while(*instance && *instance != this) {
+    instance = &(*instance)->next;
+  }
+  if(*instance) {
+    *instance = this->next;
+    this->next = nullptr;
+  }
 
   // clear any received data
   _serial.rx_head = _serial.rx_tail;

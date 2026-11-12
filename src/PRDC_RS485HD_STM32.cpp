@@ -447,7 +447,6 @@ size_t PRDC_RS485HD_STM32::write(const uint8_t *buffer, size_t size)
   size_t size_intermediate;
   size_t ret = size;
   size_t available = availableForWrite();
-  size_t available_till_buffer_end = SERIAL_TX_BUFFER_SIZE - _serial.tx_head;
 
   _written = true;
 
@@ -457,15 +456,15 @@ size_t PRDC_RS485HD_STM32::write(const uint8_t *buffer, size_t size)
     // nop, the interrupt handler will free up space for us
   }
 
-  // HAL doesn't manage rollover, so split transfer till end of TX buffer
-  // Also, split transfer according to available space in buffer
-  while ((size > available_till_buffer_end) || (size > available)) {
-    size_intermediate = min(available, available_till_buffer_end);
+  // Copy the complete write across ring rollover before publishing tx_head.
+  // Starting the first wrapped byte early can release DE before the rest of
+  // the same packet has been queued. Split only when total free space requires it.
+  while (size > available) {
+    size_intermediate = available;
     write(buffer, size_intermediate);
     size -= size_intermediate;
     buffer += size_intermediate;
     available = availableForWrite();
-    available_till_buffer_end = SERIAL_TX_BUFFER_SIZE - _serial.tx_head;
   }
 
   // Copy data to buffer. Take into account rollover if necessary.

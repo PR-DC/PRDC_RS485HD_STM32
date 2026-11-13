@@ -23,6 +23,16 @@ For more information please visit: https://www.arduino.cc/en/guide/libraries#toc
 
 For usage please check provided examples. 
 
+On STM32F1, circular RX DMA is optional. Set `PRDC_RS485HD_RX_DMA=1` in the
+global build flags for every translation unit, call `begin()` with 8N1, then
+check the result of `beginReceiveDMA()`. USART1/2/3 use DMA1 channels 5/6/3;
+the caller must reserve that channel. The existing receive ring is polled through
+`available()`, `read()` and `peek()`; service it before one complete ring wraps.
+TX and half-duplex direction control remain interrupt driven. DMA initialization
+or transfer failure does not select IRQ reception as a fallback; retain a receive
+timeout in the application. `end()` or a new `begin()` releases the DMA channel.
+DMA is disabled by default, with no additional state on other targets.
+
 ## License
 Copyright (C) 2023 PR-DC <info@pr-dc.com>
 

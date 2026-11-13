@@ -290,6 +290,9 @@ void PRDC_RS485HD_STM32::transmitDisableIRQ(serial_t *obj) {
 
 void PRDC_RS485HD_STM32::begin(unsigned long baud, byte config)
 {
+#if PRDC_RS485HD_RX_DMA
+  stopReceiveDMA();
+#endif
   uint32_t databits = 0;
   uint32_t stopbits = 0;
   uint32_t parity = 0;
@@ -364,6 +367,10 @@ void PRDC_RS485HD_STM32::end()
   // wait for transmission of outgoing data
   flush();
 
+#if PRDC_RS485HD_RX_DMA
+  stopReceiveDMA();
+#endif
+
   uart_deinit(&_serial);
   PRDC_RS485HD_STM32** instance = &first;
   while(*instance && *instance != this) {
@@ -378,13 +385,96 @@ void PRDC_RS485HD_STM32::end()
   _serial.rx_head = _serial.rx_tail;
 }
 
+#if PRDC_RS485HD_RX_DMA
+// Enable circular DMA after begin(). The caller owns the UART's DMA1 channel.
+// Receive bytes use the existing ring; TX and DE control remain independent.
+bool PRDC_RS485HD_STM32::beginReceiveDMA()
+{
+  if(receive_dma_enabled) return !receive_dma_failed;
+  if(_config != RS485_8N1) return false;
+  DMA_Channel_TypeDef* channel = nullptr;
+  if(_serial.handle.Instance == USART1) channel = DMA1_Channel5;
+#if defined(USART2)
+  else if(_serial.handle.Instance == USART2) channel = DMA1_Channel6;
+#endif
+#if defined(USART3)
+  else if(_serial.handle.Instance == USART3) channel = DMA1_Channel3;
+#endif
+  if(!channel) return false;
+  __HAL_RCC_DMA1_CLK_ENABLE();
+  if(channel->CCR & DMA_CCR_EN) return false;
+  receive_dma.Instance = channel;
+  receive_dma.Init.Direction = DMA_PERIPH_TO_MEMORY;
+  receive_dma.Init.PeriphInc = DMA_PINC_DISABLE;
+  receive_dma.Init.MemInc = DMA_MINC_ENABLE;
+  receive_dma.Init.PeriphDataAlignment = DMA_PDATAALIGN_BYTE;
+  receive_dma.Init.MemDataAlignment = DMA_MDATAALIGN_BYTE;
+  receive_dma.Init.Mode = DMA_CIRCULAR;
+  receive_dma.Init.Priority = DMA_PRIORITY_HIGH;
+  if(HAL_DMA_Init(&receive_dma) != HAL_OK) return false;
+  if(HAL_UART_AbortReceive(&_serial.handle) != HAL_OK) {
+    HAL_DMA_DeInit(&receive_dma);
+    return false;
+  }
+  _serial.rx_head = _serial.rx_tail = 0;
+  // DMA owns RX. Leave HAL's byte/error RX interrupts disabled so a line break
+  // cannot replace circular reception with a one-byte interrupt transaction.
+  CLEAR_BIT(_serial.handle.Instance->CR1, USART_CR1_RXNEIE | USART_CR1_PEIE);
+  CLEAR_BIT(_serial.handle.Instance->CR3, USART_CR3_EIE);
+  if(HAL_DMA_Start(&receive_dma, (uint32_t)&_serial.handle.Instance->DR,
+      (uint32_t)_rx_buffer, SERIAL_RX_BUFFER_SIZE) != HAL_OK) {
+    HAL_DMA_DeInit(&receive_dma);
+    return false;
+  }
+  receive_dma_enabled = true;
+  receive_dma_failed = false;
+  SET_BIT(_serial.handle.Instance->CR3, USART_CR3_DMAR);
+  return true;
+}
+
+bool PRDC_RS485HD_STM32::updateReceiveDMA()
+{
+  if(!receive_dma_enabled) return true;
+  if(receive_dma_failed) return false;
+  if(__HAL_DMA_GET_FLAG(&receive_dma, __HAL_DMA_GET_TE_FLAG_INDEX(&receive_dma))) {
+    // Latch a transfer failure. Do not silently fall back to IRQ reception or
+    // present old bytes as fresh measurements; the caller's timeout still applies.
+    CLEAR_BIT(_serial.handle.Instance->CR3, USART_CR3_DMAR);
+    HAL_DMA_Abort(&receive_dma);
+    receive_dma_failed = true;
+    return false;
+  }
+  (void)_serial.handle.Instance->SR;
+  uint32_t remaining = __HAL_DMA_GET_COUNTER(&receive_dma);
+  __DMB();
+  _serial.rx_head = (SERIAL_RX_BUFFER_SIZE-remaining) % SERIAL_RX_BUFFER_SIZE;
+  return true;
+}
+
+void PRDC_RS485HD_STM32::stopReceiveDMA()
+{
+  if(receive_dma_enabled) {
+    CLEAR_BIT(_serial.handle.Instance->CR3, USART_CR3_DMAR);
+    HAL_DMA_Abort(&receive_dma);
+    HAL_DMA_DeInit(&receive_dma);
+  }
+  receive_dma_enabled = receive_dma_failed = false;
+}
+#endif
+
 int PRDC_RS485HD_STM32::available(void)
 {
+#if PRDC_RS485HD_RX_DMA
+  if(!updateReceiveDMA()) return 0;
+#endif
   return ((unsigned int)(SERIAL_RX_BUFFER_SIZE + _serial.rx_head - _serial.rx_tail)) % SERIAL_RX_BUFFER_SIZE;
 }
 
 int PRDC_RS485HD_STM32::peek(void)
 {
+#if PRDC_RS485HD_RX_DMA
+  if(!updateReceiveDMA()) return -1;
+#endif
   if (_serial.rx_head == _serial.rx_tail) {
     return -1;
   } else {
@@ -394,6 +484,9 @@ int PRDC_RS485HD_STM32::peek(void)
 
 int PRDC_RS485HD_STM32::read(void)
 {
+#if PRDC_RS485HD_RX_DMA
+  if(!updateReceiveDMA()) return -1;
+#endif
   // if the head isn't ahead of the tail, we don't have any characters
   if (_serial.rx_head == _serial.rx_tail) {
     return -1;

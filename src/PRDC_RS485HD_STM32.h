@@ -58,6 +58,13 @@
 
 #include "uart.h"
 
+#ifndef PRDC_RS485HD_RX_DMA
+#define PRDC_RS485HD_RX_DMA 0
+#endif
+#if PRDC_RS485HD_RX_DMA && !defined(STM32F1xx)
+#error "Circular receive DMA currently supports STM32F1 only"
+#endif
+
 // Define constants and variables for buffering incoming serial data.  We're
 // using a ring buffer (I think), in which head is the index of the location
 // to which to write the next incoming character and tail is the index of the
@@ -143,6 +150,9 @@ class PRDC_RS485HD_STM32 : public Stream {
       begin(baud, RS485_8N1);
     }
     void begin(unsigned long, uint8_t);
+#if PRDC_RS485HD_RX_DMA
+    bool beginReceiveDMA();
+#endif
     void setPins(uint32_t DE_PIN,uint32_t RE_PIN);
     void setPins(uint32_t E_PIN);
     void end();
@@ -185,6 +195,13 @@ class PRDC_RS485HD_STM32 : public Stream {
     static void _rx_complete_irq(serial_t *obj);
     static int _tx_complete_irq(serial_t *obj);
   private:
+#if PRDC_RS485HD_RX_DMA
+    DMA_HandleTypeDef receive_dma = {};
+    bool receive_dma_enabled = false;
+    bool receive_dma_failed = false;
+    bool updateReceiveDMA();
+    void stopReceiveDMA();
+#endif
     static PRDC_RS485HD_STM32* first;
     PRDC_RS485HD_STM32* next = nullptr;
     volatile uint32_t state;
